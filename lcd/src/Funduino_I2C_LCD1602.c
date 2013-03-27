@@ -21,7 +21,7 @@
 #include "Funduino_I2C_LCD1602.h"
 
 #define LCD_COMMAND_TRACE 0
-#define ENHANCED_LCD_DRIVER_FEATURES 0
+#define ENHANCED_LCD_DRIVER_FEATURES 1
 
 /*----------------------------------------------------------------------------
  * Global variables
@@ -29,9 +29,6 @@
 
 /* File descriptor for character device */
 int fd = 0;
-
-/* Location of character device */
-char *FileName = "/dev/i2c-1";
 
 /*************************************************************************************
  *
@@ -383,10 +380,12 @@ int main(int argc, char **argv)
   PrintProgramArgument(text, strlen(text)-1);
   
   /* Connect to the LCD display on the I2C bus and register a file descriptor handle */
-  fd = ConnectI2CSlave(FileName, LCD_I2C_ADDRESS);
+  fd = ConnectI2CSlave("/dev/i2c-1", LCD_I2C_ADDRESS);
     
   /* Setup the LCD */
   InitializeLCD();
+  
+  LCD.Clear();
 
   /* Move cursor to first line 0th position */
   SetCursor(0, 0);
