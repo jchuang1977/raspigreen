@@ -1,4 +1,4 @@
-CC=g++
+CC=gcc
 CFLAGS=-I./h
 
 lcd: src/Funduino_I2C_LCD1602.c

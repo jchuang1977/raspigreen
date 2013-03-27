@@ -21,7 +21,6 @@
 #include "Funduino_I2C_LCD1602.h"
 
 #define LCD_COMMAND_TRACE 0
-#define ENHANCED_LCD_DRIVER_FEATURES 1
 
 /*----------------------------------------------------------------------------
  * Global variables
@@ -253,43 +252,6 @@ void WriteLcdDataNibble(unsigned char nibble)
 
 /*************************************************************************************
  *
- * Function:     InitializeLCD
- *
- * Description:  Initializes the LCD in 4 bit operation with 2 lines and no blinking
- *               cursor with left entrymode
- *
- * Parameters:   void
- *
- * Return:       void
- *
- *************************************************************************************/
-void InitializeLCD()
-{
-  WriteLcdDataNibble(LCD_INIT_VALUE);
-  usleep(5000);
-
-  WriteLcdDataNibble(LCD_INIT_VALUE);
-  usleep(5000);
-
-  WriteLcdDataNibble(LCD_INIT_VALUE);
-  usleep(5000);
-
-  WriteLcdDataNibble(LCD_4BIT_INIT_VALUE);
-  usleep(5000);
-
-  WriteLcdDataByte(LCD_FUNCTIONSET | LCD_4BITMODE | LCD_2LINE, INSTRUCTION_REG);
-  usleep(5000);
-
-  WriteLcdDataByte(LCD_DISPLAYCONTROL | LCD_DISPLAYON | LCD_CURSORON | LCD_BLINKOFF, INSTRUCTION_REG);
-
-  WriteLcdDataByte(LCD_ENTRYMODESET | LCD_ENTRYLEFT, INSTRUCTION_REG);
-
-  WriteLcdDataByte(LCD_CLEARDISPLAY, INSTRUCTION_REG);
-  usleep(5000);
-}
-
-/*************************************************************************************
- *
  * Function:     SetCursor
  *
  * Description:  Sets the display cursor to the requested row and column on the row
@@ -303,6 +265,65 @@ void SetCursor(unsigned int row, unsigned int col)
 {
   int row_offsets[] = { 0x00, 0x40 };
   WriteLcdDataByte(LCD_SETDDRAMADDR + row_offsets[row] + col, INSTRUCTION_REG);
+}
+
+/*************************************************************************************
+ *
+ * Function:     CreateChar
+ *
+ * Description:  Fills one of the first 8 CGRAM locations with custom characters
+ *
+ * Parameters:   location: Postition 1 to 8, charmap[]: The character data
+ *
+ * Return:       void
+ *
+ *************************************************************************************/
+void CreateChar(unsigned int location, unsigned char charmap[])
+{
+  int i;
+  location &= 0x7; // we only have 8 locations 0-7
+  WriteLcdDataByte(LCD_SETCGRAMADDR | (location << 3), INSTRUCTION_REG);
+  
+  for (i=0; i<8; i++)
+  {
+    WriteLcdDataByte(charmap[i], DATA_REG);
+  }
+}
+
+/*************************************************************************************
+ *
+ * Function:     Clear
+ *
+ * Description:  Clears the entire LCD display
+ *
+ * Parameters:   void
+ *
+ * Return:       void
+ *
+ *************************************************************************************/
+void Clear()
+{
+  /* Clear display, Set cursor position to zero */
+  WriteLcdDataByte(LCD_CLEARDISPLAY, INSTRUCTION_REG); 
+  usleep(2000);
+}
+
+/*************************************************************************************
+ *
+ * Function:     Home
+ *
+ * Description:  Moves the curser to line 1 position 0
+ *
+ * Parameters:   void
+ *
+ * Return:       void
+ *
+ *************************************************************************************/
+void Home()
+{
+  /* Clear display, Set cursor position to zero */
+  WriteLcdDataByte(LCD_RETURNHOME, INSTRUCTION_REG);
+  usleep(2000);
 }
 
 /*************************************************************************************
@@ -322,44 +343,53 @@ void PrintText(char *text, unsigned int size)
   int i;
   
   for(i = 0; i <= size; i++)
-  {
+    {
     /* Check if the size increases one row */
     if(i == LCD_COLS)
-    {
+      {
       SetCursor(1, 0);
-    }
-  
+      }
+    
     /* Write the character to the LCD */
     WriteLcdDataByte(text[i], DATA_REG);
-  }
+    }
 }
 
-#if ENHANCED_LCD_DRIVER_FEATURES
-/* Allows us to fill the first 8 CGRAM locations with custom characters */
-void LCD::CreateChar(unsigned int location, unsigned char charmap[])
+/*************************************************************************************
+ *
+ * Function:     InitializeLCD
+ *
+ * Description:  Initializes the LCD in 4 bit operation with 2 lines and no blinking
+ *               cursor with left entrymode
+ *
+ * Parameters:   void
+ *
+ * Return:       void
+ *
+ *************************************************************************************/
+void InitializeLCD()
 {
-  location &= 0x7; // we only have 8 locations 0-7
-  WriteLcdDataByte(LCD_SETCGRAMADDR | (location << 3), INSTRUCTION_REG);
+  WriteLcdDataNibble(LCD_INIT_VALUE);
+  usleep(5000);
   
-  for (int i=0; i<8; i++) {
-    WriteLcdDataByte(charmap[i], DATA_REG);
-  }
+  WriteLcdDataNibble(LCD_INIT_VALUE);
+  usleep(5000);
+  
+  WriteLcdDataNibble(LCD_INIT_VALUE);
+  usleep(5000);
+  
+  WriteLcdDataNibble(LCD_4BIT_INIT_VALUE);
+  usleep(5000);
+  
+  WriteLcdDataByte(LCD_FUNCTIONSET | LCD_4BITMODE | LCD_2LINE, INSTRUCTION_REG);
+  usleep(5000);
+  
+  WriteLcdDataByte(LCD_DISPLAYCONTROL | LCD_DISPLAYON | LCD_CURSORON | LCD_BLINKOFF, INSTRUCTION_REG);
+  
+  WriteLcdDataByte(LCD_ENTRYMODESET | LCD_ENTRYLEFT, INSTRUCTION_REG);
+  
+  Clear();
 }
-
-void LCD::Clear()
-{
-  /* Clear display, Set cursor position to zero */
-  WriteLcdDataByte(LCD_CLEARDISPLAY, INSTRUCTION_REG); 
-  usleep(2000);
-}
-
-void LCD::Home()
-{
-  /* Clear display, Set cursor position to zero */
-  WriteLcdDataByte(LCD_RETURNHOME);
-  usleep(2000);
-}
-#endif
 
 /*************************************************************************************
  *
@@ -375,17 +405,16 @@ void LCD::Home()
 int main(int argc, char **argv)
 {
   char *text = argv[1];
+  char *Filename = "/dev/i2c-1";
   
   /* Trace the program argument */
   PrintProgramArgument(text, strlen(text)-1);
   
   /* Connect to the LCD display on the I2C bus and register a file descriptor handle */
-  fd = ConnectI2CSlave("/dev/i2c-1", LCD_I2C_ADDRESS);
+  fd = ConnectI2CSlave(Filename, LCD_I2C_ADDRESS);
     
   /* Setup the LCD */
   InitializeLCD();
-  
-  LCD.Clear();
 
   /* Move cursor to first line 0th position */
   SetCursor(0, 0);
