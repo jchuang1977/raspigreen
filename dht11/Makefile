@@ -1,0 +1,10 @@
+C = gcc
+CFLAGS =-I./h -lbcm2835
+DEPS = 
+OBJ = src/dht11.o
+
+%.o: %.c $(DEPS)
+	$(CC) -c -o $@ $< $(CFLAGS)
+
+dht11: $(OBJ)
+	gcc -o $@ $^ $(CFLAGS)
