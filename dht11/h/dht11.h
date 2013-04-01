@@ -1,9 +1,5 @@
 
-/*
-gamma(T, RF) = ln (RH / 100) + b * T / (c + T)
-Tdp = c * gamma(T, RF) / (b - gamma(T, RH)
-a = 6.112, b = 17.67
-*/
+
 
 /* Access from ARM Running Linux */
 

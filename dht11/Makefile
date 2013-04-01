@@ -1,5 +1,5 @@
-C = gcc
-CFLAGS =-I./h -lbcm2835
+CC = gcc
+CFLAGS =-I./h -lbcm2835 -Wall
 DEPS = 
 OBJ = src/dht11.o
 

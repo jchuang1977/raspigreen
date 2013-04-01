@@ -33,7 +33,7 @@ int main(int argc, char **argv)
 
   while(1)
   {
-//    printf("Entered while\n");
+    printf("Entered while\n");
     /* Read the data from sensor #1 */
     pSensorData = GetData(DHT11_1_Pin);
   
@@ -42,8 +42,6 @@ int main(int argc, char **argv)
     {
       printf("DHT11 #1: Temp: %d, RH: %d, DP: %f\n", pSensorData->TemperatureC, pSensorData->RHPercent, pSensorData->DevPointC);
     }
-  else
-      printf("blah1\n");
 
     /* Read the data from sensor #1 */
     pSensorData = GetData(DHT11_2_Pin);
@@ -53,8 +51,6 @@ int main(int argc, char **argv)
     {
       printf("DHT11 #2: Temp: %d, RH: %d, DP: %f\n", pSensorData->TemperatureC, pSensorData->RHPercent, pSensorData->DevPointC);
     }
-  else
-      printf("blah2\n");
   
     usleep(3000000);
     printf("slept\n\n");
@@ -74,79 +70,83 @@ float DevPoint(int T, int RH)
   return 0;
 }
 
-int bits[250], data[100];
-int bitidx = 0;
-
 SensorData_t* GetData(int pin)
 {
   /* Allocate memory to which return point will be given */
   static SensorData_t ReturnData;
   ReturnData.NewData = 0;
   
+  int bits[250], data[100];
+  int bitidx = 0;
+  
   int counter = 0;
   int laststate = HIGH;
-  int j=0;
-  
+  int j=0, is=0;
+
   // Set GPIO pin to output
   bcm2835_gpio_fsel(pin, BCM2835_GPIO_FSEL_OUTP);
-  
+
   bcm2835_gpio_write(pin, HIGH);
   usleep(500000);  // 500 ms
   bcm2835_gpio_write(pin, LOW);
   usleep(20000);
   
-  printf("Hest 1\n");
+  printf("Banan\n");
   
   bcm2835_gpio_fsel(pin, BCM2835_GPIO_FSEL_INPT);
-  
+
   data[0] = data[1] = data[2] = data[3] = data[4] = 0;
-  
-  printf("Hest 2\n");
-  
+
   // wait for pin to drop?
-  while (bcm2835_gpio_lev(pin) == 1) {
+  while (bcm2835_gpio_lev(pin) == 1)
+  {
     usleep(1);
   }
+
+  printf("Hest\n");
   
   // read data!
-  int i;
-  for (i=0; i< MAXTIMINGS; i++) {
+  for (is=0; is< MAXTIMINGS; is++)
+  {
     counter = 0;
-    while ( bcm2835_gpio_lev(pin) == laststate) {
+    while ( bcm2835_gpio_lev(pin) == laststate)
+    {
       counter++;
       //nanosleep(1);		// overclocking might change this?
-      if (counter == 1000)
-        break;
+      if (counter == 1000) break;
     }
+  
     laststate = bcm2835_gpio_lev(pin);
+  
     if (counter == 1000) break;
+  
     bits[bitidx++] = counter;
-    
-    if ((i>3) && (i%2 == 0)) {
+
+    if ((is>3) && (is%2 == 0))
+    {
       // shove each bit into the storage bytes
       data[j/8] <<= 1;
-      if (counter > 200)
-        data[j/8] |= 1;
+      if (counter > 200) data[j/8] |= 1;
       j++;
     }
   }
-
-  printf("Hest 3\n");
   
-  printf("Data (%d): 0x%x 0x%x 0x%x 0x%x 0x%x\n", j, data[0], data[1], data[2], data[3], data[4]);
-  
-  if ((j >= 39) && (data[4] == ((data[0] + data[1] + data[2] + data[3]) & 0xFF)))
+  printf("Giraf\n");
+  printf("Data (%d): 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\n", j, data[0], data[1], data[2], data[3], data[4], (data[0] + data[1] + data[2] + data[3]) & 0xFF);
+//&& (data[4] == ((data[0] + data[1] + data[2] + data[3]) & 0xFF))
+  if ((j >= 39)  )
   {
     // yay!
     //printf("Temp = %d *C, Hum = %d \%\n", data[2], data[0]);
+
     ReturnData.TemperatureC = data[2];
     ReturnData.RHPercent = data[0];
     ReturnData.DevPointC = DevPoint(data[2], data[0]);
     ReturnData.NewData = 1;
-    printf("Jordbær\n");
     return &ReturnData;
   }
+ 
+  printf("Slemt\n");
   
-  printf("Svesker\n");
   return &ReturnData;
 }
