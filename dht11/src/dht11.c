@@ -40,21 +40,25 @@ int main(int argc, char **argv)
     /* When the sensor reads data print it */
     if(pSensorData->NewData == DHT11_OK)
     {
-      printf("DHT11 #1: Temp: %d, RH: %d, DP: %f\n", pSensorData->TemperatureC, pSensorData->RHPercent, pSensorData->DevPointC);
+      printf("DHT11 #1: Temp: %dC, RH: %d, DP: %fC\n", pSensorData->TemperatureC, pSensorData->RHPercent, pSensorData->DevPointC);
     }
-  else
-      printf("Failed reading DHT11 #1\n");
-
+    else
+    {
+      printf("Failed reading DHT11 #1 - %d\n", pSensorData->NewData);
+    }
+  
     /* Read the data from sensor #1 */
     pSensorData = GetData(DHT11_2_Pin);
   
     /* When the sensor reads data print it */
     if(pSensorData->NewData == DHT11_OK)
     {
-      printf("DHT11 #2: Temp: %d, RH: %d, DP: %f\n", pSensorData->TemperatureC, pSensorData->RHPercent, pSensorData->DevPointC);
+      printf("DHT11 #2: Temp: %dC, RH: %d, DP: %fC\n", pSensorData->TemperatureC, pSensorData->RHPercent, pSensorData->DevPointC);
     }
-  else
-      printf("Failed reading DHT11 #2\n");
+    else
+    {
+      printf("Failed reading DHT11 #2 - %d\n", pSensorData->NewData);
+    }
 
     printf("Sleeping...\n\n");
     usleep(500000);
