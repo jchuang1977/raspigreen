@@ -38,40 +38,45 @@ int main(int argc, char **argv)
     pSensorData = GetData(DHT11_1_Pin);
   
     /* When the sensor reads data print it */
-    if(pSensorData->NewData)
+    if(pSensorData->NewData == DHT11_OK)
     {
       printf("DHT11 #1: Temp: %d, RH: %d, DP: %f\n", pSensorData->TemperatureC, pSensorData->RHPercent, pSensorData->DevPointC);
     }
   else
-      printf("blah1\n");
+      printf("Failed reading DHT11 #1\n");
 
     /* Read the data from sensor #1 */
     pSensorData = GetData(DHT11_2_Pin);
   
     /* When the sensor reads data print it */
-    if(pSensorData->NewData)
+    if(pSensorData->NewData == DHT11_OK)
     {
       printf("DHT11 #2: Temp: %d, RH: %d, DP: %f\n", pSensorData->TemperatureC, pSensorData->RHPercent, pSensorData->DevPointC);
     }
   else
-      printf("blah2\n");
-  
-    usleep(3000000);
-    printf("slept\n\n");
+      printf("Failed reading DHT11 #2\n");
+
+    printf("Sleeping...\n\n");
+    usleep(500000);
+
   }
   
   return 0;
 }
 
-float DevPoint(int T, int RH)
+// dewPoint function NOAA
+// reference: http://wahiduddin.net/calc/density_algorithms.htm
+double DewPoint(double celsius, double humidity)
 {
-  /*
-   gamma(T, RF) = ln (RH / 100) + b * T / (c + T)
-   Tdp = c * gamma(T, RF) / (b - gamma(T, RH)
-   a = 6.112, b = 17.67
-   */
-  
-  return 0;
+  double A0= 373.15/(273.15 + celsius);
+  double SUM = -7.90298 * (A0-1);
+  SUM += 5.02808 * log10(A0);
+  SUM += -1.3816e-7 * (pow(10, (11.344*(1-1/A0)))-1) ;
+  SUM += 8.1328e-3 * (pow(10,(-3.49149*(A0-1)))-1) ;
+  SUM += log10(1013.246);
+  double VP = pow(10, SUM-3) * humidity;
+  double T = log(VP/0.61078);   // temp var
+  return (241.88 * T) / (17.558-T);
 }
 
 int bits[250], data[100];
@@ -81,11 +86,16 @@ SensorData_t* GetData(int pin)
 {
   /* Allocate memory to which return point will be given */
   static SensorData_t ReturnData;
-  ReturnData.NewData = 0;
+  ReturnData.NewData = DHT11_ERROR;
   
   int counter = 0;
   int laststate = HIGH;
   int j=0;
+  
+  // Reset global variables
+  memset(&bits, 0, 250);
+  memset(&data, 0, 100);
+  bitidx = 0;
   
   // Set GPIO pin to output
   bcm2835_gpio_fsel(pin, BCM2835_GPIO_FSEL_OUTP);
@@ -95,13 +105,9 @@ SensorData_t* GetData(int pin)
   bcm2835_gpio_write(pin, LOW);
   usleep(20000);
   
-  printf("Hest 1\n");
-  
   bcm2835_gpio_fsel(pin, BCM2835_GPIO_FSEL_INPT);
   
   data[0] = data[1] = data[2] = data[3] = data[4] = 0;
-  
-  printf("Hest 2\n");
   
   // wait for pin to drop?
   while (bcm2835_gpio_lev(pin) == 1) {
@@ -130,23 +136,31 @@ SensorData_t* GetData(int pin)
       j++;
     }
   }
-
-  printf("Hest 3\n");
   
-  printf("Data (%d): 0x%x 0x%x 0x%x 0x%x 0x%x\n", j, data[0], data[1], data[2], data[3], data[4]);
+  //printf("Data (%d): 0x%x 0x%x 0x%x 0x%x 0x%x\n", j, data[0], data[1], data[2], data[3], data[4]);
   
+  /* Check if 40 bits was returned from sensor */
+  if(j < 39)
+  {
+    ReturnData.NewData = DHT11_ERROR_TIMEOUT;
+  }
+  
+  /* Check if the checksum matched */
+  if(!(data[4] == ((data[0] + data[1] + data[2] + data[3]) & 0xFF)))
+  {
+    ReturnData.NewData = DHT11_ERROR_CHECKSUM;
+  }
+    
   if ((j >= 39) && (data[4] == ((data[0] + data[1] + data[2] + data[3]) & 0xFF)))
   {
     // yay!
     //printf("Temp = %d *C, Hum = %d \%\n", data[2], data[0]);
     ReturnData.TemperatureC = data[2];
     ReturnData.RHPercent = data[0];
-    ReturnData.DevPointC = DevPoint(data[2], data[0]);
-    ReturnData.NewData = 1;
-    printf("Jordbær\n");
+    ReturnData.DevPointC = DewPoint((double)data[2], (double)data[0]);
+    ReturnData.NewData = DHT11_OK;
     return &ReturnData;
   }
   
-  printf("Svesker\n");
   return &ReturnData;
 }

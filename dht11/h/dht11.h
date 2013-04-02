@@ -10,6 +10,11 @@
 #define DHT11_1_Pin  4
 #define DHT11_2_Pin 17
 
+#define DHT11_OK 0
+#define DHT11_ERROR 1
+#define DHT11_ERROR_TIMEOUT 2
+#define DHT11_ERROR_CHECKSUM 3
+
 typedef struct
 {
   int TemperatureC;
@@ -22,4 +27,4 @@ typedef struct
 SensorData_t* GetData(int pin);
 
 /* Calculate the devpoint from temperature and relative humidity */
-float DevPoint(int T, int RH);
+double DewPoint(double celsius, double humidity);
